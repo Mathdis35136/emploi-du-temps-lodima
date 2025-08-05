@@ -143,7 +143,7 @@ def generer_excel(fichier_heures, fichier_prof, fichier_mois, fichier_sortie):
         affectations = attribuer_cours(cours, dispos, heures)
         enregistrer_affectations_excel(fichier_mois, affectations, fichier_sortie)
     except Exception as e:
-        st.error(f"Erreur : {e}")
+        st.error(f"❌ Erreur dans la génération : {e}")
 
 # === INTERFACE STREAMLIT ===
 st.set_page_config(page_title="📅 Générateur LODIMA", layout="centered")
@@ -179,32 +179,20 @@ if uploaded_mois and uploaded_prof and uploaded_heures:
                 st.success("✅ Fichier généré avec succès !")
                 st.download_button("📥 Télécharger le fichier Excel", f, file_name="Mois_avec_profs.xlsx")
 
-            # ➕ Aperçu des feuilles
+            # === APERÇU EXCEL ===
             st.subheader("👀 Aperçu du fichier généré :")
-
             wb = openpyxl.load_workbook(tmp_result.name, data_only=True)
 
-        for sheet in wb.sheetnames:
-            st.markdown(f"### 📄 Feuille : {sheet}")
-            ws = wb[sheet]
+            for sheet in wb.sheetnames:
+                st.markdown(f"### 📄 Feuille : `{sheet}`")
+                ws = wb[sheet]
 
-            data = []
-            for row in ws.iter_rows(values_only=True):
-                data.append(row)
+                data = []
+                for row in ws.iter_rows(values_only=True):
+                    data.append(row)
 
-            df = pd.DataFrame(data)
-            st.dataframe(df)
-
-
-            # 🔍 Aperçu
-            try:
-                df_preview = pd.read_excel(tmp_result.name, sheet_name=None)
-                st.write("🔎 Aperçu du fichier généré :")
-                for sheet, df in df_preview.items():
-                    st.subheader(f"📄 Feuille : {sheet}")
-                    st.dataframe(df.head(10))
-            except Exception as e:
-                st.error(f"❌ Impossible d'afficher l'aperçu : {e}")
+                df = pd.DataFrame(data)
+                st.dataframe(df)
 
 else:
-    st.warning("⛔ Veuillez importer les trois fichiers nécessaires.")
+    st.info("📁 Veuillez importer les trois fichiers requis.")
