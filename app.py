@@ -179,20 +179,5 @@ if uploaded_mois and uploaded_prof and uploaded_heures:
                 st.success("✅ Fichier généré avec succès !")
                 st.download_button("📥 Télécharger le fichier Excel", f, file_name="Mois_avec_profs.xlsx")
 
-            # === APERÇU EXCEL ===
-            st.subheader("👀 Aperçu du fichier généré :")
-            wb = openpyxl.load_workbook(tmp_result.name, data_only=True)
-
-            for sheet in wb.sheetnames:
-                st.markdown(f"### 📄 Feuille : `{sheet}`")
-                ws = wb[sheet]
-
-                data = []
-                for row in ws.iter_rows(values_only=True):
-                    data.append(row)
-
-                df = pd.DataFrame(data)
-                st.dataframe(df)
-
 else:
     st.info("📁 Veuillez importer les trois fichiers requis.")
