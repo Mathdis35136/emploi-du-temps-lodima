@@ -1,1 +1,3 @@
-Requirement
+streamlit
+openpyxl
+pandas
