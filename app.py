@@ -5,6 +5,8 @@ import unicodedata
 import re
 import pandas as pd
 import os
+import streamlit as st
+from tempfile import NamedTemporaryFile
 
 # === OUTILS ===
 def nettoyer_mois(mois_texte):
@@ -133,29 +135,59 @@ def enregistrer_affectations_excel(fichier_source, affectations, fichier_sortie)
             ws.cell(row=row, column=col).value = prof
     wb.save(fichier_sortie)
 
-# === LA FONCTION POUR FLASK ===
 def generer_excel(fichier_heures, fichier_prof, fichier_mois, fichier_sortie):
-    print("=== generer_excel() lancé ===")
-    print("➡️ Fichier Heures :", fichier_heures)
-    print("➡️ Fichier Prof :", fichier_prof)
-    print("➡️ Fichier Mois :", fichier_mois)
-    print("➡️ Destination :", fichier_sortie)
-
     try:
-        # Charger les données
         heures = charger_heures(fichier_heures)
         dispos = charger_dispos(fichier_prof)
         cours = charger_cours(fichier_mois)
-
-        # Attribuer les cours
         affectations = attribuer_cours(cours, dispos, heures)
-
-        # Enregistrer les affectations dans une copie du fichier Mois
         enregistrer_affectations_excel(fichier_mois, affectations, fichier_sortie)
-
-        print("✅ Fichier généré :", fichier_sortie)
     except Exception as e:
-        print("❌ Erreur dans generer_excel :", e)
+        st.error(f"Erreur : {e}")
 
-    print("🧪 Existe ?", os.path.exists(fichier_sortie))
+# === INTERFACE STREAMLIT ===
+st.set_page_config(page_title="📅 Générateur LODIMA", layout="centered")
+st.title("📅 Générateur d'emploi du temps - LODIMA")
 
+uploaded_mois = st.file_uploader("📂 Importer le fichier Mois.xlsx", type="xlsx")
+uploaded_prof = st.file_uploader("👤 Importer le fichier Prof.xlsx", type="xlsx")
+uploaded_heures = st.file_uploader("⏱️ Importer le fichier Heure.xlsx", type="xlsx")
+
+if uploaded_mois and uploaded_prof and uploaded_heures:
+    if st.button("🚀 Générer le fichier"):
+        with NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp_mois, \
+             NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp_prof, \
+             NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp_heures, \
+             NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp_result:
+
+            tmp_mois.write(uploaded_mois.read())
+            tmp_prof.write(uploaded_prof.read())
+            tmp_heures.write(uploaded_heures.read())
+
+            tmp_mois.flush()
+            tmp_prof.flush()
+            tmp_heures.flush()
+
+            generer_excel(
+                fichier_heures=tmp_heures.name,
+                fichier_prof=tmp_prof.name,
+                fichier_mois=tmp_mois.name,
+                fichier_sortie=tmp_result.name
+            )
+
+            with open(tmp_result.name, "rb") as f:
+                st.success("✅ Fichier généré avec succès !")
+                st.download_button("📥 Télécharger le fichier Excel", f, file_name="Mois_avec_profs.xlsx")
+
+            # 🔍 Aperçu
+            try:
+                df_preview = pd.read_excel(tmp_result.name, sheet_name=None)
+                st.write("🔎 Aperçu du fichier généré :")
+                for sheet, df in df_preview.items():
+                    st.subheader(f"📄 Feuille : {sheet}")
+                    st.dataframe(df.head(10))
+            except Exception as e:
+                st.error(f"❌ Impossible d'afficher l'aperçu : {e}")
+
+else:
+    st.warning("⛔ Veuillez importer les trois fichiers nécessaires.")
